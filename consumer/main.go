@@ -1,18 +1,64 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
+	db "github.com/christoff-linde/pih-core-go/consumer/database"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+type appConfig struct {
+	DB *db.Queries
+}
+
+func initDb(databaseUrl string) *db.Queries {
+	connection, err := pgxpool.New(context.Background(), databaseUrl)
+	if err != nil {
+		log.Panic(err, "Unable to connect to database: %v\n", err)
+	}
+
+	db := db.New(connection)
+	return db
+}
 
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
+}
+
+func (appConfig *appConfig) handleCreateSensor() db.Sensor {
+	sensor, err := appConfig.DB.CreateSensor(context.Background(), db.CreateSensorParams{
+		SensorName: "esp32-test-02",
+	})
+	failOnError(err, "Failed to create sensor in db")
+
+	return sensor
+}
+
+//CREATE TABLE IF NOT EXISTS sensor_metadata (
+//    id INT NOT NULL,
+//    sensor_id INT NOT NULL,
+//    manufacturer TEXT,
+//    model_number TEXT,
+//    installation_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+//    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+//    additional_data JSONB
+//);
+
+func (appConfig *appConfig) handleCreateSensorMetadata(sensor db.Sensor) db.SensorMetadatum {
+	metadata, err := appConfig.DB.CreateSensorMetadata(context.Background(), db.CreateSensorMetadataParams{
+		ID:       1,
+		SensorID: sensor.ID,
+	})
+	failOnError(err, "Failed to create sensorMetadata")
+
+	return metadata
 }
 
 func main() {
@@ -23,6 +69,19 @@ func main() {
 
 	brokerUrl := os.Getenv("BROKER_URL")
 	fmt.Println("Found BROKER_URL with value:", brokerUrl)
+
+	databaseUrl := os.Getenv("DB_URL")
+	fmt.Println("Found DB_URL with value:", databaseUrl)
+
+	dbConn := initDb(databaseUrl)
+	appCfg := appConfig{DB: dbConn}
+
+	sensor := appCfg.handleCreateSensor()
+	fmt.Println("Created sensor:", sensor)
+	sensorMetadata := appCfg.handleCreateSensorMetadata(sensor)
+	fmt.Println("Created sensorMetadata:", sensorMetadata)
+
+	return
 
 	// RabbitMQ Setup
 	conn, err := amqp.Dial(brokerUrl)
