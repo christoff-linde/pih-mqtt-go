@@ -1,8 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS sensor_metadata (
-    id INT NOT NULL,
-    sensor_id INT NOT NULL,
+    id SERIAL NOT NULL PRIMARY KEY,
+    sensor_id INT NOT NULL UNIQUE,
     manufacturer TEXT,
     model_number TEXT,
     installation_time TIMESTAMPTZ DEFAULT NOW() NOT NULL,
