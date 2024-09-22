@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	db "github.com/christoff-linde/pih-core-go/consumer/database"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -47,16 +50,6 @@ func (appConfig *appConfig) handleGetSensorBySensorId(id int32) db.Sensor {
 	return sensor
 }
 
-//CREATE TABLE IF NOT EXISTS sensor_metadata (
-//    id INT NOT NULL,
-//    sensor_id INT NOT NULL,
-//    manufacturer TEXT,
-//    model_number TEXT,
-//    installation_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-//    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-//    additional_data JSONB
-//);
-
 func (appConfig *appConfig) handleCreateSensorMetadata(sensor db.Sensor) db.SensorMetadatum {
 	metadata, err := appConfig.DB.CreateSensorMetadata(context.Background(), db.CreateSensorMetadataParams{
 		ID:       1,
@@ -65,6 +58,23 @@ func (appConfig *appConfig) handleCreateSensorMetadata(sensor db.Sensor) db.Sens
 	failOnError(err, "Failed to create sensorMetadata")
 
 	return metadata
+}
+
+func (appConfig *appConfig) handleCreateSensorReading(sensor *db.Sensor, reading *db.SensorReading) (db.SensorReading, error) {
+	sensorReading, err := appConfig.DB.CreateSensorReading(context.Background(), db.CreateSensorReadingParams{
+		SensorID:    pgtype.Int4{Int32: sensor.ID, Valid: true},
+		Temperature: reading.Temperature,
+		Humidity:    reading.Humidity,
+		Pressure:    pgtype.Float8{},
+	})
+
+	return sensorReading, err
+}
+
+type DeviceData struct {
+	DeviceID string    `json:"device_id"`
+	Zone     string    `json:"zone"`
+	Data     []float64 `json:"data"`
 }
 
 func main() {
@@ -89,10 +99,8 @@ func main() {
 	} else {
 		fmt.Println("Created sensor:", sensor)
 	}
-	sensorMetadata := appCfg.handleCreateSensorMetadata(sensor)
-	fmt.Println("Created sensorMetadata:", sensorMetadata)
-
-	return
+	// sensorMetadata := appCfg.handleCreateSensorMetadata(sensor)
+	// fmt.Println("Created sensorMetadata:", sensorMetadata)
 
 	// RabbitMQ Setup
 	conn, err := amqp.Dial(brokerUrl)
@@ -139,6 +147,32 @@ func main() {
 	go func() {
 		for d := range temperatureMsgs {
 			log.Printf("Received a message from %s: %s", temperatureQueue.Name, d.Body)
+
+			var deviceData DeviceData
+			err := json.Unmarshal([]byte(d.Body), &deviceData)
+			if err != nil {
+				log.Printf("Error parsing JSON: %v", err)
+			}
+
+			sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
+				ReadingTimestamp: pgtype.Timestamptz{
+					Time:             time.Now(),
+					InfinityModifier: 0,
+					Valid:            true,
+				},
+				SensorID: pgtype.Int4{
+					Int32: sensor.ID,
+					Valid: true,
+				},
+				Temperature: pgtype.Float8{
+					Float64: deviceData.Data[0],
+					Valid:   true,
+				},
+			})
+			if err != nil {
+				log.Printf("Failed to create sensorReading: %v", err)
+			}
+			fmt.Printf("Added: %v", sensorReading)
 		}
 	}()
 
@@ -146,6 +180,32 @@ func main() {
 	go func() {
 		for d := range humidityMsgs {
 			log.Printf("Received a message from %s: %s", humidityQueue.Name, d.Body)
+
+			var deviceData DeviceData
+			err := json.Unmarshal([]byte(d.Body), &deviceData)
+			if err != nil {
+				log.Printf("Error parsing JSON: %v", err)
+			}
+
+			sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
+				ReadingTimestamp: pgtype.Timestamptz{
+					Time:             time.Now(),
+					InfinityModifier: 0,
+					Valid:            true,
+				},
+				SensorID: pgtype.Int4{
+					Int32: sensor.ID,
+					Valid: true,
+				},
+				Humidity: pgtype.Float8{
+					Float64: deviceData.Data[0],
+					Valid:   true,
+				},
+			})
+			if err != nil {
+				log.Printf("Failed to create sensorReading: %v", err)
+			}
+			fmt.Printf("Added: %v", sensorReading)
 		}
 	}()
 
