@@ -1,5 +1,5 @@
 -- name: CreateSensor :one
-INSERT INTO sensors (sensor_name, sensor_location, sensor_type)
+INSERT INTO sensors (sensor_name, created_at, updated_at)
 VALUES ($1, $2, $3)
 RETURNING *;
 

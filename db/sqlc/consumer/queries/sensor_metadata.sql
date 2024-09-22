@@ -1,6 +1,6 @@
 -- name: CreateSensorMetadata :one
-INSERT INTO sensor_metadata ( id, sensor_id, manufacturer, model_number,  additional_data )
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO sensor_metadata ( id, sensor_id, sensor_type, manufacturer, model_number, sensor_location, additional_data )
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetSensorMetadataForSensorId :one
