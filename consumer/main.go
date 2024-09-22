@@ -32,11 +32,17 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func (appConfig *appConfig) handleCreateSensor() db.Sensor {
+func (appConfig *appConfig) handleCreateSensor() (db.Sensor, error) {
 	sensor, err := appConfig.DB.CreateSensor(context.Background(), db.CreateSensorParams{
 		SensorName: "esp32-test-02",
 	})
-	failOnError(err, "Failed to create sensor in db")
+
+	return sensor, err
+}
+
+func (appConfig *appConfig) handleGetSensorBySensorId(id int32) db.Sensor {
+	sensor, err := appConfig.DB.GetSensorById(context.Background(), id)
+	failOnError(err, "Could not fetch sensor")
 
 	return sensor
 }
@@ -76,8 +82,13 @@ func main() {
 	dbConn := initDb(databaseUrl)
 	appCfg := appConfig{DB: dbConn}
 
-	sensor := appCfg.handleCreateSensor()
-	fmt.Println("Created sensor:", sensor)
+	sensor, err := appCfg.handleCreateSensor()
+	if err != nil {
+		sensor = appCfg.handleGetSensorBySensorId(1)
+		fmt.Println("Fetched sensor:", sensor)
+	} else {
+		fmt.Println("Created sensor:", sensor)
+	}
 	sensorMetadata := appCfg.handleCreateSensorMetadata(sensor)
 	fmt.Println("Created sensorMetadata:", sensorMetadata)
 
