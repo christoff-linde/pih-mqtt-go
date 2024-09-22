@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	db "github.com/christoff-linde/pih-core-go/consumer/database"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -72,9 +71,9 @@ func (appConfig *appConfig) handleCreateSensorReading(sensor *db.Sensor, reading
 }
 
 type DeviceData struct {
-	DeviceID string    `json:"device_id"`
-	Zone     string    `json:"zone"`
-	Data     []float64 `json:"data"`
+	DeviceID    string  `json:"device_id"`
+	Temperature float64 `json:"temperature"`
+	Humidity    float64 `json:"humidity"`
 }
 
 func main() {
@@ -125,28 +124,34 @@ func main() {
 	//failOnError(err, "Failed to bind to iot_clone")
 
 	// Declare temperatureQueue
-	temperatureQueue, err := channel.QueueDeclare("temperature_clone", true, false, false, false, nil)
+	temperatureQueue, err := channel.QueueDeclare("temperature", true, false, false, false, nil)
 	failOnError(err, "Faild to declare temperatureQueue")
 
 	// Delcare humidityQueue
-	humidityQueue, err := channel.QueueDeclare("humidity_clone", true, false, false, false, nil)
+	humidityQueue, err := channel.QueueDeclare("humidity", true, false, false, false, nil)
 	failOnError(err, "Faild to declare humidityQueue")
 
+	// iotQueue
+	iotQueue, err := channel.QueueDeclare("iot", true, false, false, false, nil)
+	failOnError(err, "Failed to declare iot queue")
+
+	err = channel.QueueBind(iotQueue.Name, "pih", "iot", false, nil)
 	err = channel.QueueBind(temperatureQueue.Name, "pih.temperature", "iot", false, nil)
 	err = channel.QueueBind(humidityQueue.Name, "pih.humidity", "iot", false, nil)
 
 	// Get temperatureQueue msgs
-	temperatureMsgs, err := channel.Consume(temperatureQueue.Name, "", true, false, false, false, nil)
+	// temperatureMsgs, err := channel.Consume(temperatureQueue.Name, "", true, false, false, false, nil)
 	// Get humidityQueue msgs
-	humidityMsgs, err := channel.Consume(humidityQueue.Name, "", true, false, false, false, nil)
+	// humidityMsgs, err := channel.Consume(humidityQueue.Name, "", true, false, false, false, nil)
+	// Get all iot msgs
+	iotMsgs, err := channel.ConsumeWithContext(context.Background(), iotQueue.Name, "", true, false, false, false, nil)
 
 	// Forever loop
 	var forever chan struct{}
 
-	// Consume temperatureMsgs
 	go func() {
-		for d := range temperatureMsgs {
-			log.Printf("Received a message from %s: %s", temperatureQueue.Name, d.Body)
+		for d := range iotMsgs {
+			log.Printf("Received a message from: %v: %v", iotQueue.Name, d.Body)
 
 			var deviceData DeviceData
 			err := json.Unmarshal([]byte(d.Body), &deviceData)
@@ -156,7 +161,7 @@ func main() {
 
 			sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
 				ReadingTimestamp: pgtype.Timestamptz{
-					Time:             time.Now(),
+					Time:             d.Timestamp,
 					InfinityModifier: 0,
 					Valid:            true,
 				},
@@ -165,40 +170,11 @@ func main() {
 					Valid: true,
 				},
 				Temperature: pgtype.Float8{
-					Float64: deviceData.Data[0],
+					Float64: deviceData.Temperature,
 					Valid:   true,
-				},
-			})
-			if err != nil {
-				log.Printf("Failed to create sensorReading: %v", err)
-			}
-			fmt.Printf("Added: %v", sensorReading)
-		}
-	}()
-
-	// Consume humidityMsgs
-	go func() {
-		for d := range humidityMsgs {
-			log.Printf("Received a message from %s: %s", humidityQueue.Name, d.Body)
-
-			var deviceData DeviceData
-			err := json.Unmarshal([]byte(d.Body), &deviceData)
-			if err != nil {
-				log.Printf("Error parsing JSON: %v", err)
-			}
-
-			sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
-				ReadingTimestamp: pgtype.Timestamptz{
-					Time:             time.Now(),
-					InfinityModifier: 0,
-					Valid:            true,
-				},
-				SensorID: pgtype.Int4{
-					Int32: sensor.ID,
-					Valid: true,
 				},
 				Humidity: pgtype.Float8{
-					Float64: deviceData.Data[0],
+					Float64: deviceData.Humidity,
 					Valid:   true,
 				},
 			})
@@ -208,6 +184,72 @@ func main() {
 			fmt.Printf("Added: %v", sensorReading)
 		}
 	}()
+
+	//// Consume temperatureMsgs
+	//go func() {
+	//	for d := range temperatureMsgs {
+	//		log.Printf("Received a message from %s: %s", temperatureQueue.Name, d.Body)
+
+	//		var deviceData DeviceData
+	//		err := json.Unmarshal([]byte(d.Body), &deviceData)
+	//		if err != nil {
+	//			log.Printf("Error parsing JSON: %v", err)
+	//		}
+
+	//		sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
+	//			ReadingTimestamp: pgtype.Timestamptz{
+	//				Time:             d.Timestamp,
+	//				InfinityModifier: 0,
+	//				Valid:            true,
+	//			},
+	//			SensorID: pgtype.Int4{
+	//				Int32: sensor.ID,
+	//				Valid: true,
+	//			},
+	//			Temperature: pgtype.Float8{
+	//				Float64: deviceData.Data[0],
+	//				Valid:   true,
+	//			},
+	//		})
+	//		if err != nil {
+	//			log.Printf("Failed to create sensorReading: %v", err)
+	//		}
+	//		fmt.Printf("Added: %v", sensorReading)
+	//	}
+	//}()
+
+	//// Consume humidityMsgs
+	//go func() {
+	//	for d := range humidityMsgs {
+	//		log.Printf("Received a message from %s: %s", humidityQueue.Name, d.Body)
+
+	//		var deviceData DeviceData
+	//		err := json.Unmarshal([]byte(d.Body), &deviceData)
+	//		if err != nil {
+	//			log.Printf("Error parsing JSON: %v", err)
+	//		}
+
+	//		sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
+	//			ReadingTimestamp: pgtype.Timestamptz{
+	//				Time:             d.Timestamp,
+	//				InfinityModifier: 0,
+	//				Valid:            true,
+	//			},
+	//			SensorID: pgtype.Int4{
+	//				Int32: sensor.ID,
+	//				Valid: true,
+	//			},
+	//			Humidity: pgtype.Float8{
+	//				Float64: deviceData.Data[0],
+	//				Valid:   true,
+	//			},
+	//		})
+	//		if err != nil {
+	//			log.Printf("Failed to create sensorReading: %v", err)
+	//		}
+	//		fmt.Printf("Added: %v", sensorReading)
+	//	}
+	//}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C.")
 	<-forever
