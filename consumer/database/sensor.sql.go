@@ -52,3 +52,19 @@ func (q *Queries) GetSensorById(ctx context.Context, id int32) (Sensor, error) {
 	)
 	return i, err
 }
+
+const getSensorByName = `-- name: GetSensorByName :one
+SELECT id, sensor_name, created_at, updated_at FROM sensors WHERE sensor_name=$1
+`
+
+func (q *Queries) GetSensorByName(ctx context.Context, sensorName string) (Sensor, error) {
+	row := q.db.QueryRow(ctx, getSensorByName, sensorName)
+	var i Sensor
+	err := row.Scan(
+		&i.ID,
+		&i.SensorName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
