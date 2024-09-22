@@ -1,7 +1,6 @@
 ## workspace
 # github.com/google/uuid v1.6.0
 ## explicit
-github.com/google/uuid
 # github.com/jackc/pgpassfile v1.0.0
 ## go 1.12
 github.com/jackc/pgpassfile
