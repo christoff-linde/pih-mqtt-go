@@ -12,29 +12,19 @@ import (
 )
 
 const createSensor = `-- name: CreateSensor :one
-INSERT INTO sensors (sensor_name, sensor_unique_id, sensor_location, sensor_type, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO sensors (sensor_name, sensor_location, sensor_type)
+VALUES ($1, $2, $3)
 RETURNING id, sensor_name, sensor_unique_id, sensor_location, sensor_type, created_at, updated_at
 `
 
 type CreateSensorParams struct {
-	SensorName     string             `json:"sensor_name"`
-	SensorUniqueID pgtype.UUID        `json:"sensor_unique_id"`
-	SensorLocation pgtype.Text        `json:"sensor_location"`
-	SensorType     pgtype.Text        `json:"sensor_type"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	SensorName     string      `json:"sensor_name"`
+	SensorLocation pgtype.Text `json:"sensor_location"`
+	SensorType     pgtype.Text `json:"sensor_type"`
 }
 
 func (q *Queries) CreateSensor(ctx context.Context, arg CreateSensorParams) (Sensor, error) {
-	row := q.db.QueryRow(ctx, createSensor,
-		arg.SensorName,
-		arg.SensorUniqueID,
-		arg.SensorLocation,
-		arg.SensorType,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
+	row := q.db.QueryRow(ctx, createSensor, arg.SensorName, arg.SensorLocation, arg.SensorType)
 	var i Sensor
 	err := row.Scan(
 		&i.ID,
