@@ -49,6 +49,12 @@ func (appConfig *appConfig) handleGetSensorBySensorId(id int32) db.Sensor {
 	return sensor
 }
 
+func (appConfig *appConfig) handleGetSensorByName(name string) (db.Sensor, error) {
+	sensor, err := appConfig.DB.GetSensorByName(context.Background(), name)
+
+	return sensor, err
+}
+
 func (appConfig *appConfig) handleCreateSensorMetadata(sensor db.Sensor) db.SensorMetadatum {
 	metadata, err := appConfig.DB.CreateSensorMetadata(context.Background(), db.CreateSensorMetadataParams{
 		ID:       1,
@@ -57,17 +63,6 @@ func (appConfig *appConfig) handleCreateSensorMetadata(sensor db.Sensor) db.Sens
 	failOnError(err, "Failed to create sensorMetadata")
 
 	return metadata
-}
-
-func (appConfig *appConfig) handleCreateSensorReading(sensor *db.Sensor, reading *db.SensorReading) (db.SensorReading, error) {
-	sensorReading, err := appConfig.DB.CreateSensorReading(context.Background(), db.CreateSensorReadingParams{
-		SensorID:    pgtype.Int4{Int32: sensor.ID, Valid: true},
-		Temperature: reading.Temperature,
-		Humidity:    reading.Humidity,
-		Pressure:    pgtype.Float8{},
-	})
-
-	return sensorReading, err
 }
 
 type DeviceData struct {
@@ -159,29 +154,30 @@ func main() {
 				log.Printf("Error parsing JSON: %v", err)
 			}
 
-			sensorReading, err := appCfg.handleCreateSensorReading(&sensor, &db.SensorReading{
-				ReadingTimestamp: pgtype.Timestamptz{
-					Time:             d.Timestamp,
-					InfinityModifier: 0,
-					Valid:            true,
-				},
-				SensorID: pgtype.Int4{
-					Int32: sensor.ID,
-					Valid: true,
-				},
-				Temperature: pgtype.Float8{
-					Float64: deviceData.Temperature,
-					Valid:   true,
-				},
-				Humidity: pgtype.Float8{
-					Float64: deviceData.Humidity,
-					Valid:   true,
-				},
-			})
+			sensor, err := appCfg.handleGetSensorByName(deviceData.DeviceID)
 			if err != nil {
-				log.Printf("Failed to create sensorReading: %v", err)
+				log.Printf("Sensor %v not found: %v", deviceData.DeviceID, err)
+			} else {
+				sensorReading, err := appCfg.DB.CreateSensorReading(context.Background(), db.CreateSensorReadingParams{
+					SensorID: pgtype.Int4{
+						Int32: sensor.ID,
+						Valid: true,
+					},
+					Temperature: pgtype.Float8{
+						Float64: deviceData.Temperature,
+						Valid:   true,
+					},
+					Humidity: pgtype.Float8{
+						Float64: deviceData.Humidity,
+						Valid:   true,
+					},
+					Pressure: pgtype.Float8{},
+				})
+				if err != nil {
+					log.Printf("Failed to create sensorReading: %v", err)
+				}
+				fmt.Printf("Added: %v", sensorReading)
 			}
-			fmt.Printf("Added: %v", sensorReading)
 		}
 	}()
 
