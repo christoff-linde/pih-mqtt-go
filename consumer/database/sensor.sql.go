@@ -12,25 +12,23 @@ import (
 )
 
 const createSensor = `-- name: CreateSensor :one
-INSERT INTO sensors (sensor_name, sensor_location, sensor_type)
+INSERT INTO sensors (sensor_name, created_at, updated_at)
 VALUES ($1, $2, $3)
-RETURNING id, sensor_name, sensor_location, sensor_type, created_at, updated_at
+RETURNING id, sensor_name, created_at, updated_at
 `
 
 type CreateSensorParams struct {
-	SensorName     string      `json:"sensor_name"`
-	SensorLocation pgtype.Text `json:"sensor_location"`
-	SensorType     pgtype.Text `json:"sensor_type"`
+	SensorName string             `json:"sensor_name"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) CreateSensor(ctx context.Context, arg CreateSensorParams) (Sensor, error) {
-	row := q.db.QueryRow(ctx, createSensor, arg.SensorName, arg.SensorLocation, arg.SensorType)
+	row := q.db.QueryRow(ctx, createSensor, arg.SensorName, arg.CreatedAt, arg.UpdatedAt)
 	var i Sensor
 	err := row.Scan(
 		&i.ID,
 		&i.SensorName,
-		&i.SensorLocation,
-		&i.SensorType,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -38,7 +36,7 @@ func (q *Queries) CreateSensor(ctx context.Context, arg CreateSensorParams) (Sen
 }
 
 const getSensorById = `-- name: GetSensorById :one
-SELECT id, sensor_name, sensor_location, sensor_type, created_at, updated_at FROM sensors WHERE id=$1
+SELECT id, sensor_name, created_at, updated_at FROM sensors WHERE id=$1
 `
 
 // -- name: GetSensors :many
@@ -49,8 +47,6 @@ func (q *Queries) GetSensorById(ctx context.Context, id int32) (Sensor, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.SensorName,
-		&i.SensorLocation,
-		&i.SensorType,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -9,18 +9,18 @@ import (
 )
 
 type Sensor struct {
-	ID             int32              `json:"id"`
-	SensorName     string             `json:"sensor_name"`
-	SensorLocation pgtype.Text        `json:"sensor_location"`
-	SensorType     pgtype.Text        `json:"sensor_type"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID         int32              `json:"id"`
+	SensorName string             `json:"sensor_name"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 type SensorMetadatum struct {
 	ID               int32              `json:"id"`
+	SensorType       pgtype.Text        `json:"sensor_type"`
 	Manufacturer     pgtype.Text        `json:"manufacturer"`
 	ModelNumber      pgtype.Text        `json:"model_number"`
+	SensorLocation   pgtype.Text        `json:"sensor_location"`
 	InstallationTime pgtype.Timestamptz `json:"installation_time"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	AdditionalData   []byte             `json:"additional_data"`

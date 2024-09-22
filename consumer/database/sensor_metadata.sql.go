@@ -12,16 +12,18 @@ import (
 )
 
 const createSensorMetadata = `-- name: CreateSensorMetadata :one
-INSERT INTO sensor_metadata ( id, sensor_id, manufacturer, model_number, additional_data )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, manufacturer, model_number, installation_time, updated_at, additional_data, sensor_id
+INSERT INTO sensor_metadata ( id, sensor_id, sensor_type, manufacturer, model_number, sensor_location, additional_data )
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, sensor_type, manufacturer, model_number, sensor_location, installation_time, updated_at, additional_data, sensor_id
 `
 
 type CreateSensorMetadataParams struct {
 	ID             int32       `json:"id"`
 	SensorID       int32       `json:"sensor_id"`
+	SensorType     pgtype.Text `json:"sensor_type"`
 	Manufacturer   pgtype.Text `json:"manufacturer"`
 	ModelNumber    pgtype.Text `json:"model_number"`
+	SensorLocation pgtype.Text `json:"sensor_location"`
 	AdditionalData []byte      `json:"additional_data"`
 }
 
@@ -29,15 +31,19 @@ func (q *Queries) CreateSensorMetadata(ctx context.Context, arg CreateSensorMeta
 	row := q.db.QueryRow(ctx, createSensorMetadata,
 		arg.ID,
 		arg.SensorID,
+		arg.SensorType,
 		arg.Manufacturer,
 		arg.ModelNumber,
+		arg.SensorLocation,
 		arg.AdditionalData,
 	)
 	var i SensorMetadatum
 	err := row.Scan(
 		&i.ID,
+		&i.SensorType,
 		&i.Manufacturer,
 		&i.ModelNumber,
+		&i.SensorLocation,
 		&i.InstallationTime,
 		&i.UpdatedAt,
 		&i.AdditionalData,
@@ -47,7 +53,7 @@ func (q *Queries) CreateSensorMetadata(ctx context.Context, arg CreateSensorMeta
 }
 
 const getSensorMetadataForSensorId = `-- name: GetSensorMetadataForSensorId :one
-SELECT sensors.id, sensors.sensor_name, sensors.sensor_location, sensors.sensor_type, sensors.created_at, sensors.updated_at
+SELECT sensors.id, sensors.sensor_name, sensors.created_at, sensors.updated_at
 FROM sensors
          JOIN sensor_metadata ON sensors.id = sensor_metadata.sensor_id
 WHERE sensor_metadata.sensor_id = $1
@@ -65,8 +71,6 @@ func (q *Queries) GetSensorMetadataForSensorId(ctx context.Context, arg GetSenso
 	err := row.Scan(
 		&i.ID,
 		&i.SensorName,
-		&i.SensorLocation,
-		&i.SensorType,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
