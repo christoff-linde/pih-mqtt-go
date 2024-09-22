@@ -1,6 +1,6 @@
 -- name: CreateSensor :one
-INSERT INTO sensors (sensor_name, sensor_unique_id, sensor_location, sensor_type, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO sensors (sensor_name, sensor_location, sensor_type)
+VALUES ($1, $2, $3)
 RETURNING *;
 
 ---- name: GetSensors :many
