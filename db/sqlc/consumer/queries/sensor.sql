@@ -6,6 +6,6 @@ RETURNING *;
 ---- name: GetSensors :many
 --SELECT * FROM sensors LIMIT $1 OFFSET $2;
 --
----- name: GetSensorById :one
---SELECT * FROM sensors WHERE id=$1;
+-- name: GetSensorById :one
+SELECT * FROM sensors WHERE id=$1;
 
