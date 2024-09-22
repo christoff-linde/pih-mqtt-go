@@ -9,3 +9,5 @@ RETURNING *;
 -- name: GetSensorById :one
 SELECT * FROM sensors WHERE id=$1;
 
+-- name: GetSensorByName :one
+SELECT * FROM sensors WHERE sensor_name=$1;
