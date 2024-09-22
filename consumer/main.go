@@ -158,25 +158,27 @@ func main() {
 			if err != nil {
 				log.Printf("Sensor %v not found: %v", deviceData.DeviceID, err)
 			} else {
-				sensorReading, err := appCfg.DB.CreateSensorReading(context.Background(), db.CreateSensorReadingParams{
-					SensorID: pgtype.Int4{
-						Int32: sensor.ID,
-						Valid: true,
-					},
-					Temperature: pgtype.Float8{
-						Float64: deviceData.Temperature,
-						Valid:   true,
-					},
-					Humidity: pgtype.Float8{
-						Float64: deviceData.Humidity,
-						Valid:   true,
-					},
-					Pressure: pgtype.Float8{},
-				})
-				if err != nil {
-					log.Printf("Failed to create sensorReading: %v", err)
+				if deviceData.Temperature > 0 || deviceData.Humidity > 0 {
+					sensorReading, err := appCfg.DB.CreateSensorReading(context.Background(), db.CreateSensorReadingParams{
+						SensorID: pgtype.Int4{
+							Int32: sensor.ID,
+							Valid: true,
+						},
+						Temperature: pgtype.Float8{
+							Float64: deviceData.Temperature,
+							Valid:   true,
+						},
+						Humidity: pgtype.Float8{
+							Float64: deviceData.Humidity,
+							Valid:   true,
+						},
+						Pressure: pgtype.Float8{},
+					})
+					if err != nil {
+						log.Printf("Failed to create sensorReading: %v", err)
+					}
+					fmt.Printf("Added: %v", sensorReading)
 				}
-				fmt.Printf("Added: %v", sensorReading)
 			}
 		}
 	}()
