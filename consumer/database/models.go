@@ -11,7 +11,6 @@ import (
 type Sensor struct {
 	ID             int32              `json:"id"`
 	SensorName     string             `json:"sensor_name"`
-	SensorUniqueID pgtype.UUID        `json:"sensor_unique_id"`
 	SensorLocation pgtype.Text        `json:"sensor_location"`
 	SensorType     pgtype.Text        `json:"sensor_type"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
@@ -20,12 +19,12 @@ type Sensor struct {
 
 type SensorMetadatum struct {
 	ID               int32              `json:"id"`
-	SensorID         int32              `json:"sensor_id"`
 	Manufacturer     pgtype.Text        `json:"manufacturer"`
 	ModelNumber      pgtype.Text        `json:"model_number"`
 	InstallationTime pgtype.Timestamptz `json:"installation_time"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	AdditionalData   []byte             `json:"additional_data"`
+	SensorID         int32              `json:"sensor_id"`
 }
 
 type SensorReading struct {

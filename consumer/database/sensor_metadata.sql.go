@@ -12,9 +12,9 @@ import (
 )
 
 const createSensorMetadata = `-- name: CreateSensorMetadata :one
-INSERT INTO sensor_metadata ( id, sensor_id, manufacturer, model_number,  additional_data )
+INSERT INTO sensor_metadata ( id, sensor_id, manufacturer, model_number, additional_data )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, sensor_id, manufacturer, model_number, installation_time, updated_at, additional_data
+RETURNING id, manufacturer, model_number, installation_time, updated_at, additional_data, sensor_id
 `
 
 type CreateSensorMetadataParams struct {
@@ -36,18 +36,18 @@ func (q *Queries) CreateSensorMetadata(ctx context.Context, arg CreateSensorMeta
 	var i SensorMetadatum
 	err := row.Scan(
 		&i.ID,
-		&i.SensorID,
 		&i.Manufacturer,
 		&i.ModelNumber,
 		&i.InstallationTime,
 		&i.UpdatedAt,
 		&i.AdditionalData,
+		&i.SensorID,
 	)
 	return i, err
 }
 
 const getSensorMetadataForSensorId = `-- name: GetSensorMetadataForSensorId :one
-SELECT sensors.id, sensors.sensor_name, sensors.sensor_unique_id, sensors.sensor_location, sensors.sensor_type, sensors.created_at, sensors.updated_at
+SELECT sensors.id, sensors.sensor_name, sensors.sensor_location, sensors.sensor_type, sensors.created_at, sensors.updated_at
 FROM sensors
          JOIN sensor_metadata ON sensors.id = sensor_metadata.sensor_id
 WHERE sensor_metadata.sensor_id = $1
@@ -65,7 +65,6 @@ func (q *Queries) GetSensorMetadataForSensorId(ctx context.Context, arg GetSenso
 	err := row.Scan(
 		&i.ID,
 		&i.SensorName,
-		&i.SensorUniqueID,
 		&i.SensorLocation,
 		&i.SensorType,
 		&i.CreatedAt,
