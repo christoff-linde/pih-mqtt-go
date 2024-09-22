@@ -37,3 +37,24 @@ func (q *Queries) CreateSensor(ctx context.Context, arg CreateSensorParams) (Sen
 	)
 	return i, err
 }
+
+const getSensorById = `-- name: GetSensorById :one
+SELECT id, sensor_name, sensor_unique_id, sensor_location, sensor_type, created_at, updated_at FROM sensors WHERE id=$1
+`
+
+// -- name: GetSensors :many
+// SELECT * FROM sensors LIMIT $1 OFFSET $2;
+func (q *Queries) GetSensorById(ctx context.Context, id int32) (Sensor, error) {
+	row := q.db.QueryRow(ctx, getSensorById, id)
+	var i Sensor
+	err := row.Scan(
+		&i.ID,
+		&i.SensorName,
+		&i.SensorUniqueID,
+		&i.SensorLocation,
+		&i.SensorType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

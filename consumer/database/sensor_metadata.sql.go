@@ -12,19 +12,17 @@ import (
 )
 
 const createSensorMetadata = `-- name: CreateSensorMetadata :one
-INSERT INTO sensor_metadata ( id, sensor_id, manufacturer, model_number, installation_time, updated_at, additional_data )
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO sensor_metadata ( id, sensor_id, manufacturer, model_number,  additional_data )
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, sensor_id, manufacturer, model_number, installation_time, updated_at, additional_data
 `
 
 type CreateSensorMetadataParams struct {
-	ID               int32              `json:"id"`
-	SensorID         int32              `json:"sensor_id"`
-	Manufacturer     pgtype.Text        `json:"manufacturer"`
-	ModelNumber      pgtype.Text        `json:"model_number"`
-	InstallationTime pgtype.Timestamptz `json:"installation_time"`
-	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
-	AdditionalData   []byte             `json:"additional_data"`
+	ID             int32       `json:"id"`
+	SensorID       int32       `json:"sensor_id"`
+	Manufacturer   pgtype.Text `json:"manufacturer"`
+	ModelNumber    pgtype.Text `json:"model_number"`
+	AdditionalData []byte      `json:"additional_data"`
 }
 
 func (q *Queries) CreateSensorMetadata(ctx context.Context, arg CreateSensorMetadataParams) (SensorMetadatum, error) {
@@ -33,8 +31,6 @@ func (q *Queries) CreateSensorMetadata(ctx context.Context, arg CreateSensorMeta
 		arg.SensorID,
 		arg.Manufacturer,
 		arg.ModelNumber,
-		arg.InstallationTime,
-		arg.UpdatedAt,
 		arg.AdditionalData,
 	)
 	var i SensorMetadatum
@@ -46,6 +42,34 @@ func (q *Queries) CreateSensorMetadata(ctx context.Context, arg CreateSensorMeta
 		&i.InstallationTime,
 		&i.UpdatedAt,
 		&i.AdditionalData,
+	)
+	return i, err
+}
+
+const getSensorMetadataForSensorId = `-- name: GetSensorMetadataForSensorId :one
+SELECT sensors.id, sensors.sensor_name, sensors.sensor_unique_id, sensors.sensor_location, sensors.sensor_type, sensors.created_at, sensors.updated_at
+FROM sensors
+         JOIN sensor_metadata ON sensors.id = sensor_metadata.sensor_id
+WHERE sensor_metadata.sensor_id = $1
+LIMIT $2
+`
+
+type GetSensorMetadataForSensorIdParams struct {
+	SensorID int32 `json:"sensor_id"`
+	Limit    int32 `json:"limit"`
+}
+
+func (q *Queries) GetSensorMetadataForSensorId(ctx context.Context, arg GetSensorMetadataForSensorIdParams) (Sensor, error) {
+	row := q.db.QueryRow(ctx, getSensorMetadataForSensorId, arg.SensorID, arg.Limit)
+	var i Sensor
+	err := row.Scan(
+		&i.ID,
+		&i.SensorName,
+		&i.SensorUniqueID,
+		&i.SensorLocation,
+		&i.SensorType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
