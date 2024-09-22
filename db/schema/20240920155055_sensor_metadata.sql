@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS sensor_metadata (
     sensor_id INT NOT NULL,
     manufacturer TEXT,
     model_number TEXT,
-    installation_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    installation_time TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     additional_data JSONB
 );
 -- +goose StatementEnd
