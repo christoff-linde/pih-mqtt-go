@@ -8,6 +8,7 @@ import (
 	"os"
 
 	db "github.com/christoff-linde/pih-core-go/consumer/database"
+	model "github.com/christoff-linde/pih-core-go/consumer/internal"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -29,50 +30,6 @@ func initDb(databaseUrl string) *db.Queries {
 	return db
 }
 
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Panicf("%s: %s", msg, err)
-	}
-}
-
-func (appConfig *appConfig) handleCreateSensor() (db.Sensor, error) {
-	sensor, err := appConfig.DB.CreateSensor(context.Background(), db.CreateSensorParams{
-		SensorName: "esp32-test-02",
-	})
-
-	return sensor, err
-}
-
-func (appConfig *appConfig) handleGetSensorBySensorId(id int32) db.Sensor {
-	sensor, err := appConfig.DB.GetSensorById(context.Background(), id)
-	failOnError(err, "Could not fetch sensor")
-
-	return sensor
-}
-
-func (appConfig *appConfig) handleGetSensorByName(name string) (db.Sensor, error) {
-	sensor, err := appConfig.DB.GetSensorByName(context.Background(), name)
-
-	return sensor, err
-}
-
-func (appConfig *appConfig) handleCreateSensorMetadata(sensor db.Sensor) db.SensorMetadatum {
-	metadata, err := appConfig.DB.CreateSensorMetadata(context.Background(), db.CreateSensorMetadataParams{
-		ID:       1,
-		SensorID: sensor.ID,
-	})
-	failOnError(err, "Failed to create sensorMetadata")
-
-	return metadata
-}
-
-// TODO: move to relevant file
-type DeviceData struct {
-	DeviceID    string  `json:"device_id"`
-	Temperature float64 `json:"temperature"`
-	Humidity    float64 `json:"humidity"`
-}
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -85,9 +42,13 @@ func main() {
 	databaseUrl := os.Getenv("DB_URL")
 	fmt.Println("Found DB_URL with value:", databaseUrl)
 
+	// Setup DB Conection
 	dbConn := initDb(databaseUrl)
+	// Setup AppConfig
 	appCfg := appConfig{DB: dbConn}
 
+	// TODO: remove this in favour of beter solution
+	// GetOrCreate for sensor
 	sensor, err := appCfg.handleCreateSensor()
 	if err != nil {
 		sensor = appCfg.handleGetSensorBySensorId(1)
@@ -97,7 +58,6 @@ func main() {
 	}
 
 	// TODO: move RabbitMQ setup logic to separate file
-
 	// RabbitMQ Setup
 	conn, err := amqp.Dial(brokerUrl)
 	failOnError(err, "Failed to connect to RabbitMQ")
@@ -128,7 +88,7 @@ func main() {
 		for d := range iotMsgs {
 			log.Printf("Received a message from: %v: %v", iotQueue.Name, d.Body)
 
-			var deviceData DeviceData
+			var deviceData model.DeviceData
 			err := json.Unmarshal([]byte(d.Body), &deviceData)
 			if err != nil {
 				log.Printf("Error parsing JSON: %v", err)
