@@ -1,13 +1,15 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS sensor_metadata (
-    id INT NOT NULL,
-    sensor_id INT NOT NULL,
+    id SERIAL NOT NULL PRIMARY KEY,
+    sensor_type TEXT,
     manufacturer TEXT,
     model_number TEXT,
-    installation_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    additional_data JSONB
+    sensor_location TEXT,
+    installation_time TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    additional_data JSONB,
+    sensor_id SERIAL NOT NULL REFERENCES sensors(id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 
