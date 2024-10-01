@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	db "github.com/christoff-linde/pih-core-go/consumer/database"
+	db "github.com/christoff-linde/pih-core-go/api/database"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	_ "github.com/joho/godotenv/autoload"
