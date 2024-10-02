@@ -106,7 +106,45 @@ func (s *Server) CreateSensorHandler(c *gin.Context) {
 }
 
 func (s *Server) UpdateSensorHandler(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
+	id, err := strconv.Atoi(c.Param("id"))
+	var sensorData db.UpdateSensorParams
+	if err := c.BindJSON(&sensorData); err != nil {
+		resp := gin.H{
+			"message": "Invalid input",
+			"error":   err,
+		}
+		c.JSON(http.StatusBadRequest, resp)
+		return
+	}
+
+	sensor, err := s.db.UpdateSensor(c, db.UpdateSensorParams{
+		ID:         sensorData.ID,
+		SensorName: sensorData.SensorName,
+	})
+
+	if sensor.RowsAffected() == 0 {
+		// TODO: improve error handling
+		resp := gin.H{
+			"message": "Failed to update sensor",
+			"error":   fmt.Errorf("Sensor with id %v does not exist", id),
+		}
+		c.JSON(http.StatusBadRequest, resp)
+		return
+	}
+	if err != nil {
+		resp := gin.H{
+			"message": "Failed to update sensor",
+			"error":   err,
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return
+	}
+
+	resp := gin.H{
+		"message": fmt.Sprintf("Updated sensor %v", id),
+		"data":    sensor,
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) DeleteSensorHandler(c *gin.Context) {
