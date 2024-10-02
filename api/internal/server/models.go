@@ -1,10 +1,12 @@
 package server
 
-import "github.com/jackc/pgx/v5/pgtype"
+import (
+	"time"
+)
 
 type Sensor struct {
-	ID         int32              `json:"id"`
-	SensorName string             `json:"sensor_name"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	SensorName string    `json:"sensor_name"`
+	ID         int32     `json:"id,omitempty"`
 }
