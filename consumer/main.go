@@ -30,6 +30,12 @@ func initDb(databaseUrl string) *db.Queries {
 	return db
 }
 
+func failOnError(err error, msg string) {
+	if err != nil {
+		log.Panicf("%s: %s", msg, err)
+	}
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -46,16 +52,6 @@ func main() {
 	dbConn := initDb(databaseUrl)
 	// Setup AppConfig
 	appCfg := appConfig{DB: dbConn}
-
-	// TODO: remove this in favour of beter solution
-	// GetOrCreate for sensor
-	sensor, err := appCfg.handleCreateSensor()
-	if err != nil {
-		sensor = appCfg.handleGetSensorBySensorId(1)
-		fmt.Println("Fetched sensor:", sensor)
-	} else {
-		fmt.Println("Created sensor:", sensor)
-	}
 
 	// TODO: move RabbitMQ setup logic to separate file
 	// RabbitMQ Setup
@@ -94,7 +90,7 @@ func main() {
 				log.Printf("Error parsing JSON: %v", err)
 			}
 
-			sensor, err := appCfg.handleGetSensorByName(deviceData.DeviceID)
+			sensor, err := appCfg.DB.GetSensorByName(context.Background(), deviceData.DeviceID)
 			if err != nil {
 				log.Printf("Sensor %v not found: %v", deviceData.DeviceID, err)
 			} else {

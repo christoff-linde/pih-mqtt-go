@@ -34,3 +34,36 @@ type SensorReading struct {
 	Humidity         pgtype.Float8      `json:"humidity"`
 	Pressure         pgtype.Float8      `json:"pressure"`
 }
+
+type SensorReadingsDaily struct {
+	Day            interface{} `json:"day"`
+	SensorID       pgtype.Int4 `json:"sensor_id"`
+	MinTemperature interface{} `json:"min_temperature"`
+	AvgTemperature float64     `json:"avg_temperature"`
+	MaxTemperature interface{} `json:"max_temperature"`
+	MinHumidity    interface{} `json:"min_humidity"`
+	AvgHumidity    float64     `json:"avg_humidity"`
+	MaxHumidity    interface{} `json:"max_humidity"`
+}
+
+type SensorReadingsHourly struct {
+	Hour           interface{} `json:"hour"`
+	SensorID       pgtype.Int4 `json:"sensor_id"`
+	MinTemperature interface{} `json:"min_temperature"`
+	AvgTemperature float64     `json:"avg_temperature"`
+	MaxTemperature interface{} `json:"max_temperature"`
+	MinHumidity    interface{} `json:"min_humidity"`
+	AvgHumidity    float64     `json:"avg_humidity"`
+	MaxHumidity    interface{} `json:"max_humidity"`
+}
+
+type SensorReadingsMinute struct {
+	Minute         interface{} `json:"minute"`
+	SensorID       pgtype.Int4 `json:"sensor_id"`
+	MinTemperature interface{} `json:"min_temperature"`
+	AvgTemperature float64     `json:"avg_temperature"`
+	MaxTemperature interface{} `json:"max_temperature"`
+	MinHumidity    interface{} `json:"min_humidity"`
+	AvgHumidity    float64     `json:"avg_humidity"`
+	MaxHumidity    interface{} `json:"max_humidity"`
+}

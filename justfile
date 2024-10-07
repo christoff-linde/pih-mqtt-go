@@ -19,7 +19,7 @@ build-api:
 
 # build the consumer service
 build-consumer:
-    cd {{ CONSUMER_DIR }} && go build -o bin/consumer cmd/main.go
+    cd {{ CONSUMER_DIR }} && go build -o bin/consumer main.go
 
 # run the api service
 run-api:
